@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "watchkeeper"
+version = "0.1.0"
+description = "A lightweight, customizable service monitoring tool designed to run on resource-constrained systems"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [ "tests" ]
+console_output_style = "progress"
