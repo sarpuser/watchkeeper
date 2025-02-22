@@ -1,0 +1,197 @@
+name: Unit test on push
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+    paths:
+      - '**.py'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  check-test-existence:
+    name: Verify tests exist for modified files
+    runs-on: ubuntu-latest
+    outputs:
+      test_files: ${{ steps.collect-tests.outputs.test_files }}
+      any_changed: ${{ steps.modified-files.outputs.any_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get modified Python files
+        id: modified-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            **/*.py
+            !**/__init__.py
+      - name: Check if tests exist for modified source files
+        if: steps.modified-files.outputs.any_changed == 'true'
+        id: collect-tests
+        run: |
+          hasError=0
+          testFiles=""
+
+          # Process each modified file
+          for file in ${{ steps.modified-files.outputs.all_changed_files }}; do
+            # Skip if test file already is added to list
+            if [[ $testFiles == *"$file"* ]]; then
+              continue
+            fi
+
+            # Include test files directly
+            if [[ $file == tests/* ]]; then
+              testFiles="$testFiles $file"
+              continue
+            fi
+
+            # Extract file path components
+            filename=$(basename "$file")
+            dirpath=$(dirname "$file")
+
+            # Remove src/ and package name from path if present
+            if [[ "$dirpath" =~ ^src/[^/]+/.*$ ]]; then
+              # File is in src/pkg/module/...
+              testPath=$(echo "$dirpath" | sed -E 's|^src/[^/]+/(.*)$|\1|')
+              expectedTestFile="tests/unit/${testPath}/test_${filename}"
+            elif [[ "$dirpath" =~ ^src/[^/]+$ ]]; then
+              # File is directly in src/pkg/
+              expectedTestFile="tests/unit/test_${filename}"
+            else
+              # For files outside src/ and tests/, fail the check
+              if [[ "$file" != tests/* ]]; then
+                echo "Error: Python file found outside src/ and tests/ directories: $file"
+                echo "All Python code should be in src/ or tests/"
+                exit 1
+              fi
+            fi
+
+            # Check if test file exists
+            if [ ! -f "$expectedTestFile" ]; then
+              echo "Error: No test file found for $file"
+              echo "Expected test file: $expectedTestFile"
+              hasError=1
+            else
+              echo "✓ Found test file for $file"
+              testFiles="$testFiles $expectedTestFile"
+            fi
+          done
+
+          # Store test files as output
+          echo "test_files=${testFiles}" >> $GITHUB_OUTPUT
+
+          # Exit with error if any test files were missing
+          if [ $hasError -eq 1 ]; then
+            echo "Some test files are missing!"
+            exit 1
+          fi
+
+          echo "All modified files have corresponding test files!"
+
+  lint-code:
+    name: Lint code and check formatting
+    needs: check-test-existence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install ruff, mypy & bandit
+        run: |
+          pip install ruff mypy bandit
+      - name: Cache ruff
+        uses: actions/cache@v3
+        with:
+          path: .ruff_cache
+          key: ruff-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+      - name: Cache mypy
+        uses: actions/cache@v3
+        with:
+          path: .mypy_cache
+          key: mypy-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+      - name: Lint code (ruff)
+        run: |
+          ruff check .
+      - name: Check type defs (mypy)
+        run: |
+          mypy .
+      - name: Check for security vulnerabilities (bandit)
+        run: |
+          bandit -r src/
+      - name: Check formatting (ruff)
+        run: |
+          ruff format --check .
+
+  run-unit-tests:
+    name: Run unit tests
+    needs: [lint-code, check-test-existence]
+    if: needs.check-test-existence.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
+          pip install pytest pytest-cov
+      - name: Cache pytest
+        uses: actions/cache@v3
+        with:
+          path: .pytest_cache
+          key: pytest-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+      - name: Run tests with coverage
+        run: |
+          echo "Running tests: ${{ needs.check-test-existence.outputs.test_files }}"
+          pytest ${{ needs.check-test-existence.outputs.test_files }}
+
+  create-pull-request:
+    name: Create PR
+    needs: run-unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create or Update Pull Request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "Auto-PR from valid push to ${{ github.ref_name }}" \
+            --base dev \
+            --head "${{ github.ref_name }}" \
+            --body "- [X] Unit tests exist
+            - [X] Passed linter
+            - [X] Passed type checking
+            - [X] Passed unit tests
+            - [X] Passed formatting
+            - [ ] Integration tests exist
+            - [ ] Integration tests passing"\
+            || echo "Pull request already exists"
