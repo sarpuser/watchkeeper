@@ -1,0 +1,43 @@
+name: Auto merge infra changes
+on:
+  push:
+    branches:
+      - 'infra/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Authenticate as GitHub App
+      - name: Generate token
+        id: generate-token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.UPDATE_PROTECTED_APP_ID }}
+          private_key: ${{ secrets.UPDATE_PROTECTED_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        id: create-pr
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh pr create \
+            --title "Auto merge ${{ github.ref_name }}" \
+            --base dev \
+            --head "${{ github.ref_name }}" \
+            --body "${{ github.event.head_commit.message }}"
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Merge Pull Request
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          gh pr merge --merge "${{ steps.create-pr.outputs.pr_url }}"
