@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    target-branch: "dev"
+    branch-name-separator: "/"
+
+    # For minor/patch updates
+    groups:
+      minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      major:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+
+    # Branch naming happens at this level
+    branch-name: "fix/dep-updates-{group}"
+
+    labels:
+      - "dependencies"
