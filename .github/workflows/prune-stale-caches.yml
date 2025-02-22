@@ -1,0 +1,22 @@
+name: Prune stale caches
+
+on:
+  delete
+
+permissions:
+  actions: write    # Required for deleting caches
+
+jobs:
+  prune-stale-caches:
+    runs-on: ubuntu-latest
+    if: github.event.ref_type == 'branch' && (startsWith(github.event.ref, 'feat/') || startsWith(github.event.ref, 'fix/'))
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete branch caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # List all caches for this branch and delete them
+          gh cache list --ref "refs/heads/${{ github.event.ref }}" | \
+            awk '{print $1}' | \
+            xargs -I {} gh cache delete {}

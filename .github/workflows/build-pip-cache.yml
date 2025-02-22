@@ -1,0 +1,37 @@
+name: Build pip cache
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - dev
+
+jobs:
+  build-pip-cache:
+    name: Build pip cache
+    if: github.event.pull_request.merged == true && (startsWith(github.head_ref, 'feat/') || startsWith(github.head_ref, 'fix/'))
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Windows takes too much time
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.11', '3.12']
+      # Don't cancel other matrix jobs if one fails
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      # Install dependencies to populate pip cache
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
