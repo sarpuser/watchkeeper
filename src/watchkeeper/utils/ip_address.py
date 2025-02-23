@@ -1,0 +1,2 @@
+class IPAddress(str):
+	pass

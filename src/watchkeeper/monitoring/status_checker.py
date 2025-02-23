@@ -4,12 +4,12 @@ from datetime import datetime
 
 
 @dataclass
-class StatusResult(ABC):
+class StatusCheckResult(ABC):
 	is_up: bool
 	timestamp: datetime
 
 
 class StatusChecker(ABC):
 	@abstractmethod
-	def check_status(self) -> StatusResult:
+	def check_status(self) -> StatusCheckResult:
 		pass
