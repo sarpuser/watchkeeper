@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
+
 from watchkeeper.monitoring.status_checker import StatusChecker, StatusCheckResult
 from watchkeeper.utils.ip_address import IPAddress
 
