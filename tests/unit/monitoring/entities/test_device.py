@@ -20,7 +20,7 @@ def mock_status_checker() -> StatusChecker:
 			self.is_up = is_up
 			self.timestamp = timestamp
 
-		def check_status(self) -> StatusCheckResult:
+		def check_status(self, address) -> StatusCheckResult:
 			return StatusCheckResult(is_up=self.is_up, timestamp=self.timestamp)
 
 	return MockChecker

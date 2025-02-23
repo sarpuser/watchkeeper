@@ -11,5 +11,5 @@ class StatusCheckResult(ABC):
 
 class StatusChecker(ABC):
 	@abstractmethod
-	def check_status(self) -> StatusCheckResult:
+	def check_status(self, address: str) -> StatusCheckResult:
 		pass
