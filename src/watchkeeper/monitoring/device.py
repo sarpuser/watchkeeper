@@ -1,19 +1,33 @@
 from dataclasses import dataclass
-from datetime import datetime
-from watchkeeper.monitoring.status_checker import StatusChecker
+from datetime import datetime, timedelta
+from watchkeeper.monitoring.status_checker import StatusChecker, StatusCheckResult
+from watchkeeper.utils.ip_address import IPAddress
 
 
 @dataclass
 class Device:
 	name: str
-	ip_address: str
-	last_alive: datetime
 	status_checker: StatusChecker
+	ip_address: IPAddress
+	__last_checked: datetime = None
+	__last_updated: datetime = None
+	__last_status: bool = None
 
-	@property
-	def down_time(self) -> datetime:
-		pass
+	def __post_init__(self) -> None:
+		_ = self.is_up
 
 	@property
 	def is_up(self) -> bool:
-		pass
+		check_result = self.status_checker.check_status()
+		self.__update(check_result)
+		return check_result.is_up
+
+	@property
+	def last_update(self) -> datetime:
+		return self.__last_updated
+
+	def __update(self, check_result: StatusCheckResult) -> None:
+		self.__last_checked = check_result.timestamp
+		if self.__last_status != check_result.is_up:
+			self.__last_updated = check_result.timestamp
+			self.__last_status = check_result.is_up
