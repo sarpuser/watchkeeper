@@ -46,7 +46,7 @@ PING_OUTPUT_FORMATS = {
             "Ping statistics for {ip_address}:\n"
             "    Packets: Sent = {icmp_count}, Received = {icmp_count}, Lost = 0 (0% loss),\n"
             "Approximate round trip times in milli-seconds:\n"
-            f"    Minimum = {RTT_MIN}ms, Maximum = {RTT_MAX}ms, Average = {RTT_AVG}ms"
+            f"    Minimum = {RTT_MIN}ms, Maximum = {RTT_MAX}ms, Average = {RTT_AVG}ms\n"
         ),
         "success_response_line": "Reply from {ip_address}: bytes=32 time={rtt_time:.0f}ms TTL=64\n",
         "timeout_format": (
@@ -70,31 +70,17 @@ PING_OUTPUT_FORMATS = {
         "returncode_timeout": 1,
     },
     "Darwin": {  # macOS
-        "success_format": (
+        "output_format": (
             "PING {address} ({ip_address}): 56 data bytes\n"
             "{ping_responses}"
-            "--- {address} ping statistics ---\n"
-            "{icmp_count} packets transmitted, {icmp_count} packets received, 0.0% packet loss\n"
-            f"round-trip min/avg/max/stddev = {RTT_MIN:.3f}/{RTT_AVG:.3f}/{RTT_MAX:.3f}/{RTT_STD_DEV:.3f} ms"
+            "\n--- {address} ping statistics ---\n"
+            "{icmp_count} packets transmitted, {received} packets received, {loss_percent}% packet loss\n"
         ),
+        "rtt_summary_line": f"round-trip min/avg/max/stddev = {RTT_MIN:.3f}/{RTT_AVG:.3f}/{RTT_MAX:.3f}/{RTT_STD_DEV:.3f} ms\n",
         "success_response_line": "64 bytes from {ip_address}: icmp_seq={seq} ttl=64 time={rtt_time:.3f} ms\n",
-        "timeout_format": (
-            "PING {address} ({ip_address}): 56 data bytes\n"
-            "{ping_responses}"
-            "--- {address} ping statistics ---\n"
-            "{icmp_count} packets transmitted, 0 packets received, 100.0% packet loss"
-        ),
-        "timeout_response_line": "",
-        "partial_loss_format": (
-            "PING {address} ({ip_address}): 56 data bytes\n"
-            "{ping_responses}"
-            "--- {address} ping statistics ---\n"
-            "{icmp_count} packets transmitted, {received} packets received, {loss_percent:.1f}% packet loss\n"
-            f"round-trip min/avg/max/stddev = {RTT_MIN:.3f}/{RTT_AVG:.3f}/{RTT_MAX:.3f}/{RTT_STD_DEV:.3f} ms"
-        ),
-        "partial_loss_response_line": "64 bytes from {ip_address}: icmp_seq={seq} ttl=64 time={rtt_time:.3f} ms\n",
+        "timeout_response_line": "Request timeout for icmp_seq {seq}\n",
         "unknown_host_format": "ping: cannot resolve {address}: Unknown host",
-        "returncode_unknown_host": 2,
-        "returncode_timeout": 2,
+        "unknown_host_returncode": 2,
+        "timeout_returncode": 2,
     },
 }

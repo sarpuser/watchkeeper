@@ -43,37 +43,45 @@ def mock_ping_command(monkeypatch):
         ping_responses = _generate_ping_responses(
             ip_address, icmp_count, output_formats["success_response_line"]
         )
-        stdout = output_formats["success_format"].format(
+        stdout = output_formats["output_format"].format(
             icmp_count=icmp_count,
             address=address,
             ip_address=ip_address,
+            received=icmp_count,
+            loss_percent=0,
             ping_responses=ping_responses
-        )
+        ) + output_formats["rtt_summary_line"]
         return MockCompletedProcess(0, stdout)
 
     def _mock_unknown_host(address, output_formats):
         """Generate an unknown host response"""
         stdout = output_formats["unknown_host_format"].format(address=address)
-        returncode = output_formats["returncode_unknown_host"]
+        returncode = output_formats["unknown_host_returncode"]
         return MockCompletedProcess(returncode, stdout)
 
     def _mock_timeout_ping(address, icmp_count, output_formats):
         """Generate a timeout response"""
         ip_address = address  # For timeout, use the address as IP
-        ping_responses = ""
-        if output_formats["timeout_response_line"]:
-            for seq in range(1, icmp_count + 1):
-                ping_responses += output_formats["timeout_response_line"].format(
-                    ip_address=ip_address, seq=seq
-                )
+        ping_responses = _generate_ping_responses(
+            address,
+            icmp_count,
+            output_formats["timeout_response_line"]
+        )
+        # if output_formats["timeout_response_line"]:
+        #     for seq in range(1, icmp_count + 1):
+        #         ping_responses += output_formats["timeout_response_line"].format(
+        #             ip_address=ip_address, seq=seq
+        #         )
 
-        stdout = output_formats["timeout_format"].format(
+        stdout = output_formats["output_format"].format(
             icmp_count=icmp_count,
             address=address,
             ip_address=ip_address,
+            received=0,
+            loss_percent=100,
             ping_responses=ping_responses
         )
-        returncode = output_formats["returncode_timeout"]
+        returncode = output_formats["timeout_returncode"]
         return MockCompletedProcess(returncode, stdout)
 
     def _mock_partial_loss_ping(address, icmp_count, output_formats):
@@ -84,16 +92,17 @@ def mock_ping_command(monkeypatch):
         loss_percent = (lost / icmp_count) * 100
 
         # Generate partial loss responses
-        ping_responses = ""
-        for seq in range(1, icmp_count + 1):
-            # Only generate responses for packets that were received
-            if seq <= received:
-                rtt_time = RTT_AVG + ((seq - 1) * 0.005)
-                ping_responses += output_formats["partial_loss_response_line"].format(
-                    ip_address=ip_address, seq=seq, rtt_time=rtt_time
-                )
+        ping_responses = _generate_ping_responses(
+            address,
+            received,
+            output_formats["success_response_line"]
+        ) + _generate_ping_responses(
+            address,
+            lost,
+            output_formats["timeout_response_line"]
+        )
 
-        stdout = output_formats["partial_loss_format"].format(
+        stdout = output_formats["output_format"].format(
             icmp_count=icmp_count,
             address=address,
             ip_address=ip_address,
@@ -101,7 +110,7 @@ def mock_ping_command(monkeypatch):
             lost=lost,
             loss_percent=loss_percent,
             ping_responses=ping_responses
-        )
+        ) + output_formats["rtt_summary_line"]
         return MockCompletedProcess(0, stdout)
 
     def mock_execute_ping_command(address, icmp_count=1, timeout=1):
