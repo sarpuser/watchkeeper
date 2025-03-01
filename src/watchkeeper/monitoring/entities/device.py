@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from watchkeeper.monitoring.status_checker import StatusChecker, StatusCheckResult
-from watchkeeper.utils.ip_address import IPAddress
+from ..status_checkers.base import (
+	StatusChecker,
+	StatusCheckResult,
+)
+from ...utils.ip_address import IPAddress
 
 
 @dataclass
