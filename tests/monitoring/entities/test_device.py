@@ -2,8 +2,11 @@ from datetime import datetime
 
 import pytest
 
-from watchkeeper.monitoring.device import Device
-from watchkeeper.monitoring.status_checker import StatusChecker, StatusCheckResult
+from watchkeeper.monitoring.entities import Device
+from watchkeeper.monitoring.status_checkers import (
+	StatusChecker,
+	StatusCheckResult,
+)
 
 NOW_TIME = datetime(2024, 1, 1, 12, 0, 0)
 FIVE_MIN_AGO_TIME = datetime(2024, 1, 1, 11, 55, 0)
@@ -17,7 +20,7 @@ def mock_status_checker() -> StatusChecker:
 			self.is_up = is_up
 			self.timestamp = timestamp
 
-		def check_status(self) -> StatusCheckResult:
+		def check_status(self, address) -> StatusCheckResult:
 			return StatusCheckResult(is_up=self.is_up, timestamp=self.timestamp)
 
 	return MockChecker
