@@ -22,7 +22,7 @@ class Device:
 
 	@property
 	def is_up(self) -> bool:
-		check_result = self.status_checker.check_status()
+		check_result = self.status_checker.check_status(self.ip_address)
 		self.__update(check_result)
 		return check_result.is_up
 
