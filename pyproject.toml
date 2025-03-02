@@ -84,6 +84,7 @@ docstring-code-format = false
 
 # mypy configuration for strong typing
 [tool.mypy]
+packages = ["watchkeeper"]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
