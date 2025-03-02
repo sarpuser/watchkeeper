@@ -1,5 +1,6 @@
-from watchkeeper.utils.ip_address import IPAddress
 import pytest
+
+from watchkeeper.utils.ip_address import IPAddress
 
 
 @pytest.mark.parametrize(
