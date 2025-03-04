@@ -41,4 +41,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          gh pr merge --rebase "${{ github.ref_name }}"
+          gh pr merge --rebase --admin "${{ github.ref_name }}"
