@@ -35,10 +35,9 @@ jobs:
             --head "${{ github.ref_name }}" \
             --body "${{ github.event.head_commit.message }}" || \
             echo "PR already exists from ${{ github.ref_name }} to dev"
-            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Merge Pull Request
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          gh pr merge --rebase "${{ steps.create-pr.outputs.pr_url }}"
+          gh pr merge --rebase "${{ github.ref_name }}"
