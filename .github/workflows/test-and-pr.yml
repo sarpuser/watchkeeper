@@ -50,6 +50,7 @@ jobs:
           if [[ "${{ needs.check-changes.outputs.source-files-modified }}" != "true" ]]; then
             echo "::notice::No source files changed - skipping linting"
             echo "skip=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup Python
         if: steps.should-skip.outputs.skip != 'true'
