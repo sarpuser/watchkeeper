@@ -40,4 +40,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
-          gh pr merge --merge "${{ steps.create-pr.outputs.pr_url }}"
+          gh pr merge --rebase "${{ steps.create-pr.outputs.pr_url }}"
