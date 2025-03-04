@@ -2,10 +2,11 @@ name: Unit test on push
 
 on:
   push:
-    branches-ignore:
-      - 'infra/**'
-    paths:
-      - '**.py'
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'refactor/**'
+      - 'chore/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,13 +17,42 @@ permissions:
   contents: write
 
 jobs:
+  check-changes:
+    name: Check for Python file changes
+    runs-on: ubuntu-latest
+    outputs:
+      source-files-modified: ${{ steps.changed-files.outputs.any_changed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for Python file changes
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            **/*.py
+          base_sha: origin/dev
+
   lint-code:
     name: Lint code and check formatting
+    needs: check-changes
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Check if tests should be skipped
+        id: should-skip
+        run: |
+          if [[ "${{ needs.check-changes.outputs.source-files-modified }}" != "true" ]]; then
+            echo "::notice::No source files changed - skipping linting"
+            echo "skip=true" >> $GITHUB_OUTPUT
+
       - name: Setup Python
+        if: steps.should-skip.outputs.skip != 'true'
         id: setup-python
         uses: actions/setup-python@v5
         with:
@@ -31,40 +61,63 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+
       - name: Install ruff, mypy & bandit
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           pip install ruff mypy bandit
+
       - name: Cache ruff
+        if: steps.should-skip.outputs.skip != 'true'
         uses: actions/cache@v3
         with:
           path: .ruff_cache
           key: ruff-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+
       - name: Cache mypy
+        if: steps.should-skip.outputs.skip != 'true'
         uses: actions/cache@v3
         with:
           path: .mypy_cache
           key: mypy-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+
       - name: Lint code (ruff)
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           ruff check .
+
       - name: Check type defs (mypy)
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           mypy .
+
       - name: Check for security vulnerabilities (bandit)
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           bandit -r src/
+
       - name: Check formatting (ruff)
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           ruff format --check .
 
   run-unit-tests:
     name: Run unit tests
-    needs: lint-code
+    needs: [check-changes, lint-code]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Check if tests should be skipped
+        id: should-skip
+        run: |
+          if [[ "${{ needs.check-changes.outputs.source-files-modified }}" != "true" ]]; then
+            echo "::notice::No source files changed - skipping unit tests"
+            echo "skip=true" >> $GITHUB_OUTPUT
+
       - name: Set up Python
+        if: steps.should-skip.outputs.skip != 'true'
         id: setup-python
         uses: actions/setup-python@v5
         with:
@@ -73,24 +126,30 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+
       - name: Install dependencies
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install -e .
           pip install pytest pytest-cov
+
       - name: Cache pytest
+        if: steps.should-skip.outputs.skip != 'true'
         uses: actions/cache@v3
         with:
           path: .pytest_cache
           key: pytest-static-py${{ steps.setup-python.outputs.python-version }}-${{ runner.os }}
+
       - name: Run tests with coverage
+        if: steps.should-skip.outputs.skip != 'true'
         run: |
           pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=90
       # TODO: Implement codecov
 
   create-pull-request:
     name: Create PR
-    needs: run-unit-tests
+    needs: [check-changes, run-unit-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,15 +158,27 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create \
-            --title "[] from valid push to ${{ github.ref_name }}" \
-            --base dev \
-            --head "${{ github.ref_name }}" \
-            --body "- [X] Passed linter
-            - [X] Passed type checking
-            - [X] Passed preliminary security checking
-            - [X] Passed unit tests with at least 90% coverage
-            - [X] Passed formatting
-            - [ ] Integration tests exist
-            - [ ] Integration tests passing"\
-            || echo "Pull request already exists"
+          if [ "${{ needs.check-changes.outputs.source-files-modified }}" = "true" ]; then
+            # Source files changed
+            gh pr create \
+              --title "[Auto-PR] ${{ github.ref_name }}" \
+              --base dev \
+              --head "${{ github.ref_name }}" \
+              --body "- [X] Passed linter
+              - [X] Passed type checking
+              - [X] Passed preliminary security checking
+              - [X] Passed unit tests with at least 90% coverage
+              - [X] Passed formatting
+              - [ ] Integration tests exist
+              - [ ] Integration tests passing"\
+              || echo "Pull request already exists"
+          else
+            # No source files changed
+            gh pr create \
+              --title "[Auto-PR] ${{ github.ref_name }}" \
+              --base dev \
+              --head "${{ github.ref_name }}" \
+              --body "No source files were changed
+              ⚠️ Skipped linting and unit tests"\
+              || echo "Pull request already exists"
+          fi
