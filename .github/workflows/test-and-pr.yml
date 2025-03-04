@@ -145,7 +145,11 @@ jobs:
         if: steps.should-skip.outputs.skip != 'true'
         run: |
           pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=90
-      # TODO: Implement codecov
+      - name: Upload coverage reports to Codecov
+        if: steps.should-skip.outputs.skip != 'true'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   create-pull-request:
     name: Create PR
