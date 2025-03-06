@@ -4,10 +4,11 @@ from watchkeeper.monitoring.status_checkers.ping.ping import PingStatus, ping
 
 # Import constants for testing
 from .values import (
+	DUMMY_IP,
 	LOCALHOST_HOST,
 	LOCALHOST_IP,
+	MALFORMED_OUTPUT_HOST,
 	PARTIAL_LOSS_HOST,
-	PARTIAL_LOSS_IP,
 	RTT_AVG,
 	RTT_MAX,
 	RTT_MIN,
@@ -35,7 +36,7 @@ def test_ping_parser_success_no_packet_loss(mock_ping_command, localhost_address
 	assert result.rtt_max == RTT_MAX, f"{result.rtt_max=} == {RTT_MAX}"
 	assert result.rtt_std_dev == RTT_STD_DEV, f"{result.rtt_std_dev=} == {RTT_STD_DEV}"
 	assert result.error == PingStatus.SUCCESS, (
-		f"{result.error=} == {PingStatus.SUCCESS}"
+		f"{result.error=} == {PingStatus.SUCCESS=}"
 	)
 
 
@@ -56,7 +57,7 @@ def test_ping_parser_success_multiple_packets(mock_ping_command, icmp_count):
 	assert result.rtt_max == RTT_MAX, f"{result.rtt_max=} == {RTT_MAX}"
 	assert result.rtt_std_dev == RTT_STD_DEV, f"{result.rtt_std_dev=} == {RTT_STD_DEV}"
 	assert result.error == PingStatus.SUCCESS, (
-		f"{result.error=} == {PingStatus.SUCCESS}"
+		f"{result.error=} == {PingStatus.SUCCESS=}"
 	)
 
 
@@ -66,6 +67,9 @@ def test_ping_parser_timeout(mock_ping_command, test_net_address):
 	"""Test ping timeout (no responses)"""
 	result = ping(test_net_address)
 
+	assert result.error == PingStatus.TIMEOUT, (
+		f"{result.error=} == {PingStatus.TIMEOUT=}"
+	)
 	assert result.hostname == test_net_address, (
 		f"{result.hostname=} == {test_net_address}"
 	)
@@ -79,9 +83,6 @@ def test_ping_parser_timeout(mock_ping_command, test_net_address):
 	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
 	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
 	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"
-	assert result.error == PingStatus.TIMEOUT, (
-		f"{result.error=} == {PingStatus.TIMEOUT}"
-	)
 
 
 @pytest.mark.parametrize("icmp_count", [5, 10])
@@ -90,6 +91,9 @@ def test_ping_parser_timeout_multiple_packets(mock_ping_command, icmp_count):
 	test_net_address = TEST_NET_IPS[0]
 	result = ping(test_net_address, icmp_count=icmp_count)
 
+	assert result.error == PingStatus.TIMEOUT, (
+		f"{result.error=} == {PingStatus.TIMEOUT}"
+	)
 	assert result.hostname == test_net_address, (
 		f"{result.hostname=} == {test_net_address}"
 	)
@@ -103,9 +107,6 @@ def test_ping_parser_timeout_multiple_packets(mock_ping_command, icmp_count):
 	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
 	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
 	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"
-	assert result.error == PingStatus.TIMEOUT, (
-		f"{result.error=} == {PingStatus.TIMEOUT}"
-	)
 
 
 # Tests for unknown host
@@ -113,6 +114,9 @@ def test_ping_parser_unknown_host(mock_ping_command):
 	"""Test ping to unknown host"""
 	result = ping(UNKNOWN_HOST)
 
+	assert result.error == PingStatus.UNKNOWN_HOST, (
+		f"{result.error=} == {PingStatus.UNKNOWN_HOST=}"
+	)
 	assert result.hostname == UNKNOWN_HOST, f"{result.hostname=} == {UNKNOWN_HOST}"
 	assert result.ip_address is None, f"{result.ip_address=} == None"
 	assert result.packets_sent == 0, f"{result.packets_sent=} == 0"
@@ -122,9 +126,6 @@ def test_ping_parser_unknown_host(mock_ping_command):
 	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
 	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
 	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"
-	assert result.error == PingStatus.UNKNOWN_HOST, (
-		f"{result.error=} == {PingStatus.UNKNOWN_HOST}"
-	)
 
 
 # Tests for partial packet loss
@@ -138,11 +139,9 @@ def test_ping_parser_success_partial_loss(mock_ping_command, icmp_count):
 	loss_percent = (lost_packets / icmp_count) * 100
 
 	assert result.hostname == PARTIAL_LOSS_HOST, (
-		f"{result.hostname=} == {PARTIAL_LOSS_HOST}"
+		f"{result.hostname=} == {PARTIAL_LOSS_HOST=}"
 	)
-	assert result.ip_address == PARTIAL_LOSS_IP, (
-		f"{result.ip_address=} == {PARTIAL_LOSS_IP}"
-	)
+	assert result.ip_address == DUMMY_IP, f"{result.ip_address=} == {DUMMY_IP}"
 	assert result.packets_sent == icmp_count, f"{result.packets_sent=} == {icmp_count}"
 	assert result.packets_received == received_packets, (
 		f"{result.packets_received=} == {received_packets}"
@@ -156,7 +155,7 @@ def test_ping_parser_success_partial_loss(mock_ping_command, icmp_count):
 	assert result.rtt_std_dev == RTT_STD_DEV, f"{result.rtt_std_dev=} == {RTT_STD_DEV}"
 	# Partial loss should still be considered successful if some packets got through
 	assert result.error == PingStatus.SUCCESS, (
-		f"{result.error=} == {PingStatus.SUCCESS}"
+		f"{result.error=} == {PingStatus.SUCCESS=}"
 	)
 
 
@@ -170,7 +169,7 @@ def test_ping_parser_with_custom_timeout(mock_ping_command):
 	# the function accepts and passes this parameter correctly
 	assert result.hostname == LOCALHOST_IP, f"{result.hostname=} == {LOCALHOST_IP}"
 	assert result.error == PingStatus.SUCCESS, (
-		f"{result.error=} == {PingStatus.SUCCESS}"
+		f"{result.error=} == {PingStatus.SUCCESS=}"
 	)
 
 
@@ -180,9 +179,7 @@ def test_ping_parser_default_parameters(mock_ping_command):
 
 	assert result.hostname == LOCALHOST_IP, f"{result.hostname=} == {LOCALHOST_IP}"
 	assert result.packets_sent == 1, f"{result.packets_sent=} == 1"
-	assert result.error == PingStatus.SUCCESS, (
-		f"{result.error=} == {PingStatus.SUCCESS}"
-	)
+	assert result.error == PingStatus.SUCCESS, f"{result.ERROR} == {PingStatus.SUCCESS}"
 
 
 def test_ip_resolution_behavior(mock_ping_command):
@@ -197,40 +194,32 @@ def test_ip_resolution_behavior(mock_ping_command):
 
 
 @pytest.mark.parametrize("icmp_count", [-1, 0])
-def test_ping_parser_invalid_icmp_count(monkeypatch, icmp_count):
+def test_ping_parser_invalid_icmp_count(icmp_count):
 	# Should throw a ValueError if icmp_count < 1
 	with pytest.raises(ValueError):
 		ping(LOCALHOST_HOST, icmp_count=icmp_count)
 
 
 @pytest.mark.parametrize("timeout", [-1, 0])
-def test_ping_parser_invalid_timeout(monkeypatch, timeout):
+def test_ping_parser_invalid_timeout(timeout):
 	# Should throw a ValueError if icmp_count < 1
 	with pytest.raises(ValueError):
 		ping(LOCALHOST_HOST, timeout=timeout)
 
 
-def test_ping_parser_malformed_output(monkeypatch):
+def test_ping_parser_malformed_output(mock_ping_command):
 	"""Test handling of malformed ping output"""
 
-	def mock_bad_output(*args, **kwargs):
-		class BadProcess:
-			def __init__(self):
-				self.returncode = 0
-				self.stdout = "This is not a valid ping output format"
-				self.stderr = ""
-
-		return BadProcess()
-
-	from watchkeeper.monitoring.status_checkers.ping import ping
-
-	monkeypatch.setattr(ping, "_execute_ping_command", mock_bad_output)
-
 	# Should handle gracefully without exceptions
-	result = ping.ping(LOCALHOST_HOST)
+	result = ping(MALFORMED_OUTPUT_HOST)
 
 	# Test that we get reasonable defaults for an unparseable response
-	assert result.hostname == "localhost", f"{result.hostname=} == localhost"
+	assert result.error == PingStatus.PARSE_ERROR, (
+		f"{result.error=} == {PingStatus.PARSE_ERROR}"
+	)
+	assert result.hostname == MALFORMED_OUTPUT_HOST, (
+		f"{result.hostname=} == {MALFORMED_OUTPUT_HOST}"
+	)
 	assert result.ip_address is None, f"{result.ip_address=} == None"
 	assert result.packets_sent == 0, f"{result.packets_sent=} == 0"
 	assert result.packets_received == 0, f"{result.packets_received=} == 0"
@@ -239,9 +228,6 @@ def test_ping_parser_malformed_output(monkeypatch):
 	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
 	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
 	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"
-	assert result.error == PingStatus.PARSE_ERROR, (
-		f"{result.error=} == {PingStatus.PARSE_ERROR}"
-	)
 
 
 def test_ping_command_execution_error(monkeypatch):
@@ -258,6 +244,9 @@ def test_ping_command_execution_error(monkeypatch):
 	result = ping.ping(LOCALHOST_HOST)
 
 	# Verify the result contains appropriate error information
+	assert result.error == PingStatus.EXECUTION_ERROR, (
+		f"{result.error=} == {PingStatus.EXECUTION_ERROR}"
+	)
 	assert result.hostname == "localhost", f"{result.hostname=} == localhost"
 	assert result.ip_address is None, f"{result.ip_address=} == None"
 	assert result.packets_sent == 0, f"{result.packets_sent=} == 0"
@@ -267,6 +256,22 @@ def test_ping_command_execution_error(monkeypatch):
 	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
 	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
 	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"
-	assert result.error == PingStatus.EXECUTION_ERROR, (
-		f"{result.error=} == {PingStatus.EXECUTION_ERROR}"
+
+
+@pytest.mark.parametrize("icmp_count", [1, 5])
+def test_ping_parser_network_unreachable(mock_ping_command, icmp_count):
+	"""Test parsing ping output when network is unreachable"""
+	result = ping(DUMMY_IP, icmp_count=icmp_count)
+
+	# Verify the result contains appropriate error information
+	assert result.ip_address == DUMMY_IP, f"{result.ip_address=} == {DUMMY_IP}"
+	assert result.error == PingStatus.NETWORK_ERROR, (
+		f"{result.error=} == {PingStatus.NETWORK_ERROR}"
 	)
+	assert result.packets_sent == icmp_count, f"{result.packets_sent=} == {icmp_count}"
+	assert result.packets_received == 0, f"{result.packets_received=} == 0"
+	assert result.packet_loss == 100, f"{result.packet_loss=} == 100"
+	assert result.rtt_min == 0, f"{result.rtt_min=} == 0"
+	assert result.rtt_avg == 0, f"{result.rtt_avg=} == 0"
+	assert result.rtt_max == 0, f"{result.rtt_max=} == 0"
+	assert result.rtt_std_dev == 0, f"{result.rtt_std_dev=} == 0"

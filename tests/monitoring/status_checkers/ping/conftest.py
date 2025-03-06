@@ -5,10 +5,11 @@ import pytest
 from watchkeeper.monitoring.status_checkers.ping import ping
 
 from .values import (
+	DUMMY_IP,
 	LOCALHOST_HOST,
 	LOCALHOST_IP,
+	MALFORMED_OUTPUT_HOST,
 	PARTIAL_LOSS_HOST,
-	PARTIAL_LOSS_IP,
 	PING_OUTPUT_FORMATS,
 	RTT_AVG,
 	TEST_NET_IPS,
@@ -88,7 +89,7 @@ def mock_ping_command(monkeypatch):
 
 	def _mock_partial_loss_ping(address, icmp_count, output_formats):
 		"""Generate a partial packet loss response"""
-		ip_address = PARTIAL_LOSS_IP  # Mock IP for partial loss host
+		ip_address = DUMMY_IP  # Mock IP for partial loss host
 		received = max(1, icmp_count // 2)  # At least 1, about half lost
 		lost = icmp_count - received
 		loss_percent = (lost / icmp_count) * 100
@@ -114,6 +115,33 @@ def mock_ping_command(monkeypatch):
 		)
 		return MockCompletedProcess(address, 0, stdout, icmp_count)
 
+	def _mock_malformed_output_ping(address):
+		"""Return malformed ping response"""
+		stdout = "Invalid ping output"
+
+		return MockCompletedProcess(address, 1, stdout)
+
+	def _mock_network_unreachable_ping(address, icmp_count, output_formats):
+		"""Generate unreachable network output"""
+		# Generate partial loss responses
+		ping_responses = _generate_ping_responses(
+			address, icmp_count, output_formats["network_unreachable_response_line"]
+		)
+
+		stdout = output_formats["output_format"].format(
+			icmp_count=icmp_count,
+			address=address,
+			ip_address=address,
+			received=0,
+			lost=icmp_count,
+			loss_percent=100,
+			ping_responses=ping_responses,
+		)
+
+		returncode = output_formats["network_unreachable_returncode"]
+
+		return MockCompletedProcess(address, returncode, stdout)
+
 	def mock_execute_ping_command(address, icmp_count=1, timeout=1):
 		"""Main mock function that delegates to specific scenario handlers"""
 
@@ -126,6 +154,12 @@ def mock_ping_command(monkeypatch):
 			return _mock_timeout_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 		elif address == PARTIAL_LOSS_HOST:
 			return _mock_partial_loss_ping(address, icmp_count, PING_OUTPUT_FORMATS)
+		elif address == MALFORMED_OUTPUT_HOST:
+			return _mock_malformed_output_ping(address)
+		elif address == DUMMY_IP:
+			return _mock_network_unreachable_ping(
+				address, icmp_count, PING_OUTPUT_FORMATS
+			)
 		else:
 			# Default fallback
 			return _mock_timeout_ping(address, icmp_count, PING_OUTPUT_FORMATS)

@@ -4,7 +4,8 @@ LOCALHOST_IP = "127.0.0.1"
 UNKNOWN_HOST = "invalid.host.test"
 TEST_NET_IPS = ["192.0.2.0", "198.51.100.0", "203.0.113.0"]
 PARTIAL_LOSS_HOST = "partial.loss.test"
-PARTIAL_LOSS_IP = "192.168.0.1"  # Doesn't really matter
+DUMMY_IP = "192.168.0.1"  # Doesn't really matter
+MALFORMED_OUTPUT_HOST = "malformed.output.test"
 
 # Default RTT values
 RTT_MIN = 0.020
@@ -26,4 +27,6 @@ PING_OUTPUT_FORMATS = {
 	"unknown_host_format": "ping: cannot resolve {address}: Unknown host",
 	"unknown_host_returncode": 2,
 	"timeout_returncode": 2,
+	"network_unreachable_response_line": "ping: sendto: No route to host",
+	"network_unreachable_returncode": 68,
 }
