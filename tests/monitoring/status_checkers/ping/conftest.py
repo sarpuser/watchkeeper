@@ -1,3 +1,5 @@
+import subprocess
+
 import pytest
 
 from watchkeeper.monitoring.status_checkers.ping import ping
@@ -18,8 +20,9 @@ from .values import (
 def mock_ping_command(monkeypatch):
 	"""Fixture to simulate ping command output for different scenarios"""
 
-	class MockCompletedProcess:
-		def __init__(self, returncode, stdout):
+	class MockCompletedProcess(subprocess.CompletedProcess):
+		def __init__(self, address, returncode, stdout, icmp_count=1):
+			self.args = ["ping", "-c", str(icmp_count), "-t", "1", address]
 			self.returncode = returncode
 			self.stdout = stdout
 			self.stderr = ""
@@ -52,13 +55,13 @@ def mock_ping_command(monkeypatch):
 			)
 			+ output_formats["rtt_summary_line"]
 		)
-		return MockCompletedProcess(0, stdout)
+		return MockCompletedProcess(address, 0, stdout, icmp_count)
 
 	def _mock_unknown_host(address, output_formats):
 		"""Generate an unknown host response"""
 		stdout = output_formats["unknown_host_format"].format(address=address)
 		returncode = output_formats["unknown_host_returncode"]
-		return MockCompletedProcess(returncode, stdout)
+		return MockCompletedProcess(address, returncode, stdout)
 
 	def _mock_timeout_ping(address, icmp_count, output_formats):
 		"""Generate a timeout response"""
@@ -81,7 +84,7 @@ def mock_ping_command(monkeypatch):
 			ping_responses=ping_responses,
 		)
 		returncode = output_formats["timeout_returncode"]
-		return MockCompletedProcess(returncode, stdout)
+		return MockCompletedProcess(address, returncode, stdout, icmp_count)
 
 	def _mock_partial_loss_ping(address, icmp_count, output_formats):
 		"""Generate a partial packet loss response"""
@@ -109,7 +112,7 @@ def mock_ping_command(monkeypatch):
 			)
 			+ output_formats["rtt_summary_line"]
 		)
-		return MockCompletedProcess(0, stdout)
+		return MockCompletedProcess(address, 0, stdout, icmp_count)
 
 	def mock_execute_ping_command(address, icmp_count=1, timeout=1):
 		"""Main mock function that delegates to specific scenario handlers"""
