@@ -1,5 +1,3 @@
-import platform
-
 import pytest
 
 from watchkeeper.monitoring.status_checkers.ping import ping
@@ -115,26 +113,19 @@ def mock_ping_command(monkeypatch):
 
 	def mock_execute_ping_command(address, icmp_count=1, timeout=1):
 		"""Main mock function that delegates to specific scenario handlers"""
-		# Determine current platform or use a specified test platform
-		current_platform = platform.system()
-
-		# Fall back to Linux format if platform not recognized
-		output_formats = PING_OUTPUT_FORMATS.get(
-			current_platform, PING_OUTPUT_FORMATS["Linux"]
-		)
 
 		# Delegate based on the address
 		if address == LOCALHOST_HOST or address == LOCALHOST_IP:
-			return _mock_successful_ping(address, icmp_count, output_formats)
+			return _mock_successful_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 		elif address == UNKNOWN_HOST:
-			return _mock_unknown_host(address, output_formats)
+			return _mock_unknown_host(address, PING_OUTPUT_FORMATS)
 		elif address in TEST_NET_IPS:
-			return _mock_timeout_ping(address, icmp_count, output_formats)
+			return _mock_timeout_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 		elif address == PARTIAL_LOSS_HOST:
-			return _mock_partial_loss_ping(address, icmp_count, output_formats)
+			return _mock_partial_loss_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 		else:
 			# Default fallback
-			return _mock_timeout_ping(address, icmp_count, output_formats)
+			return _mock_timeout_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 
 	# Replace the actual execution function with our mock
 	monkeypatch.setattr(ping, "_execute_ping_command", mock_execute_ping_command)
