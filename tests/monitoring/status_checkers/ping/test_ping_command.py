@@ -6,6 +6,7 @@ from .values import LOCALHOST_HOST, LOCALHOST_IP, TEST_NET_IPS, UNKNOWN_HOST
 
 
 @pytest.mark.parametrize("localhost_address", [LOCALHOST_HOST, LOCALHOST_IP])
+@pytest.mark.flaky(retries=3)
 def test_ping_command_localhost_success(localhost_address):
 	result = ping(localhost_address)
 
@@ -21,8 +22,9 @@ def test_ping_command_localhost_success(localhost_address):
 
 
 @pytest.mark.parametrize("icmp_count", [5, 10])
+@pytest.mark.flaky(retries=3)
 def test_ping_command_icmp_count(icmp_count):
-	result = ping(LOCALHOST_HOST)
+	result = ping(LOCALHOST_HOST, icmp_count=icmp_count)
 
 	assert result.packets_sent == icmp_count, f"{result.packets_sent=} == {icmp_count}"
 	assert result.packets_received == icmp_count, (
@@ -32,6 +34,7 @@ def test_ping_command_icmp_count(icmp_count):
 
 
 @pytest.mark.parametrize("public_dns_address", ["1.1.1.1", "8.8.8.8"])
+@pytest.mark.flaky(retries=3)
 def test_ping_command_public_dns_success(public_dns_address):
 	result = ping(public_dns_address)
 

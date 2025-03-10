@@ -22,11 +22,11 @@ def mock_ping_command(monkeypatch):
 	"""Fixture to simulate ping command output for different scenarios"""
 
 	class MockCompletedProcess(subprocess.CompletedProcess):
-		def __init__(self, address, returncode, stdout, icmp_count=1):
+		def __init__(self, address, returncode, stdout: str, icmp_count=1):
 			self.args = ["ping", "-c", str(icmp_count), "-t", "1", address]
 			self.returncode = returncode
-			self.stdout = stdout
-			self.stderr = ""
+			self.stdout = stdout.encode()
+			self.stderr = b""
 
 	def _generate_ping_responses(ip_address, icmp_count, response_template):
 		"""Generate individual ping response lines"""

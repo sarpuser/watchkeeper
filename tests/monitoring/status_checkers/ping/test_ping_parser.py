@@ -28,8 +28,8 @@ def test_ping_parser_success_no_packet_loss(mock_ping_command, localhost_address
 		f"{result.hostname=} == {localhost_address}"
 	)
 	assert result.ip_address == LOCALHOST_IP, f"{result.ip_address=} == {LOCALHOST_IP}"
-	assert result.packets_sent == 1, f"{result.packets_sent=} == 1"
-	assert result.packets_received == 1, f"{result.packets_received=} == 1"
+	assert result.packets_sent == 2, f"{result.packets_sent=} == 1"
+	assert result.packets_received == 2, f"{result.packets_received=} == 1"
 	assert result.packet_loss == 0, f"{result.packet_loss=} == 0"
 	assert result.rtt_min == RTT_MIN, f"{result.rtt_min=} == {RTT_MIN}"
 	assert result.rtt_avg == RTT_AVG, f"{result.rtt_avg=} == {RTT_AVG}"
@@ -76,7 +76,7 @@ def test_ping_parser_timeout(mock_ping_command, test_net_address):
 	assert result.ip_address == test_net_address, (
 		f"{result.ip_address=} == {test_net_address}"
 	)
-	assert result.packets_sent == 1, f"{result.packets_sent=} == 1"
+	assert result.packets_sent == 2, f"{result.packets_sent=} == 1"
 	assert result.packets_received == 0, f"{result.packets_received=} == 0"
 	assert result.packet_loss == 100, f"{result.packet_loss=} == 100"
 	assert result.rtt_min == 0, f"{result.rtt_min=} == 0"
@@ -178,7 +178,7 @@ def test_ping_parser_default_parameters(mock_ping_command):
 	result = ping(LOCALHOST_IP)
 
 	assert result.hostname == LOCALHOST_IP, f"{result.hostname=} == {LOCALHOST_IP}"
-	assert result.packets_sent == 1, f"{result.packets_sent=} == 1"
+	assert result.packets_sent == 2, f"{result.packets_sent=} == 1"
 	assert result.error == PingStatus.SUCCESS, f"{result.ERROR} == {PingStatus.SUCCESS}"
 
 

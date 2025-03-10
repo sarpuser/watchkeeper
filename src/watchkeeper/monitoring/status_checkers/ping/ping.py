@@ -35,7 +35,7 @@ class PingResult:
 		self.__timestamp = datetime.now()
 
 
-def ping(address: str, *, icmp_count: int = 1, timeout: int = 1) -> PingResult:
+def ping(address: str, *, icmp_count: int = 2, timeout: int = 1) -> PingResult:
 	try:
 		process_result = _execute_ping_command(address, icmp_count, timeout)
 		return _parse_output(process_result)
@@ -44,22 +44,29 @@ def ping(address: str, *, icmp_count: int = 1, timeout: int = 1) -> PingResult:
 
 
 def _execute_ping_command(
-	address: str, icmp_count: int = 1, timeout: int = 1
+	address: str, icmp_count: int = 2, timeout: int = 1
 ) -> subprocess.CompletedProcess:
 	if icmp_count < 1:
 		raise ValueError("ping: count of packets to transmit must be greater than 1")
 	if timeout < 1:
 		raise ValueError("ping: timeout must be greater than 1")
-	return None
+	return subprocess.run(
+		["ping", "-c", str(icmp_count), "-W", str(timeout), address],
+		capture_output=True,
+	)
 
 
 def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
-	stdout = process_result.stdout
+	# print(process_result)
+	stdout = process_result.stdout.decode()
+	stderr = process_result.stderr.decode()
+	output = stdout if stdout else stderr
+
 	address = process_result.args[-1]
-	if "Unknown host" in stdout:
+	if "Unknown host" in output:
 		return PingResult(address, None, error=PingStatus.UNKNOWN_HOST)
 
-	output_lines = stdout[:-1].split("\n")
+	output_lines = output[:-1].split("\n")
 
 	ip_address_match = re.search(r"((\d{1,3}\.){3}\d{1,3})", output_lines[0])
 	if ip_address_match is None:
