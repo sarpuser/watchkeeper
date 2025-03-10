@@ -2,7 +2,7 @@ import subprocess
 
 import pytest
 
-from watchkeeper.monitoring.status_checkers.ping import ping
+from watchkeeper.monitoring.status_checkers.ping_checker import ping
 
 from .values import (
 	DUMMY_IP,

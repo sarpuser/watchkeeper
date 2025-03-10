@@ -1,6 +1,6 @@
 import pytest
 
-from watchkeeper.monitoring.status_checkers.ping.ping import PingStatus, ping
+from watchkeeper.monitoring.status_checkers.ping_checker.ping import PingStatus, ping
 
 # Import constants for testing
 from .values import (
@@ -159,7 +159,7 @@ def test_ping_command_execution_error(monkeypatch):
 	"""Test handling of command execution errors"""
 	import subprocess
 
-	from watchkeeper.monitoring.status_checkers.ping import ping as ping_module
+	from watchkeeper.monitoring.status_checkers.ping_checker import ping as ping_module
 
 	def mock_failing_command(*args, **kwargs):
 		raise subprocess.SubprocessError("Command failed to execute")

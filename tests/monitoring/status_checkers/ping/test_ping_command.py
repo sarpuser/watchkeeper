@@ -1,6 +1,6 @@
 import pytest
 
-from watchkeeper.monitoring.status_checkers.ping.ping import PingStatus, ping
+from watchkeeper.monitoring.status_checkers.ping_checker.ping import PingStatus, ping
 
 from .values import LOCALHOST_HOST, LOCALHOST_IP, TEST_NET_IPS, UNKNOWN_HOST
 
