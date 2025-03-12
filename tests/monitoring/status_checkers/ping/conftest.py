@@ -2,10 +2,9 @@ import subprocess
 
 import pytest
 
-from watchkeeper.monitoring.status_checkers.ping_checker import ping
-
 from .values import (
 	DUMMY_IP,
+	EXECUTION_ERROR_HOST,
 	LOCALHOST_HOST,
 	LOCALHOST_IP,
 	MALFORMED_OUTPUT_HOST,
@@ -142,6 +141,12 @@ def mock_ping_command(monkeypatch):
 
 		return MockCompletedProcess(address, returncode, stdout)
 
+	def _mock_execution_error_ping(address):
+		"""Mock execution error"""
+		from subprocess import SubprocessError
+
+		raise SubprocessError("Command failed to execute")
+
 	def mock_execute_ping_command(address, icmp_count=1, timeout=1):
 		"""Main mock function that delegates to specific scenario handlers"""
 
@@ -160,9 +165,17 @@ def mock_ping_command(monkeypatch):
 			return _mock_network_unreachable_ping(
 				address, icmp_count, PING_OUTPUT_FORMATS
 			)
+		elif address == EXECUTION_ERROR_HOST:
+			return _mock_execution_error_ping(address)
 		else:
 			# Default fallback
 			return _mock_timeout_ping(address, icmp_count, PING_OUTPUT_FORMATS)
 
+	from watchkeeper.monitoring.status_checkers.ping_checker import ping_command
+
 	# Replace the actual execution function with our mock
-	monkeypatch.setattr(ping, "_execute_ping_command", mock_execute_ping_command)
+	monkeypatch.setattr(
+		ping_command,
+		"_execute_ping_command",
+		mock_execute_ping_command,
+	)

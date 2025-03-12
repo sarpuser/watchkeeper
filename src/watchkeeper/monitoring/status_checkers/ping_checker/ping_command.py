@@ -6,6 +6,9 @@ from enum import Enum
 
 from ....utils.ip_address import IPAddress
 
+DEFAULT_ICMP_COUNT = 2
+DEFAULT_TIMEOUT = 1
+
 
 class PingStatus(Enum):
 	SUCCESS = 0
@@ -14,6 +17,7 @@ class PingStatus(Enum):
 	PARSE_ERROR = 3
 	EXECUTION_ERROR = 4
 	NETWORK_ERROR = 5
+	COMMAND_ERROR = 6
 
 
 @dataclass
@@ -28,49 +32,55 @@ class PingResult:
 	rtt_avg: float = 0
 	rtt_max: float = 0
 	rtt_std_dev: float = 0
-	error: PingStatus
-	__timestamp: datetime = None
+	status: PingStatus
+	timestamp: datetime = None
 
 	def __post_init__(self) -> None:
-		self.__timestamp = datetime.now()
+		self.timestamp = datetime.now()
 
 
-def ping(address: str, *, icmp_count: int = 2, timeout: int = 1) -> PingResult:
+def ping(
+	address: str,
+	*,
+	icmp_count: int = DEFAULT_ICMP_COUNT,
+	timeout: int = DEFAULT_TIMEOUT,
+) -> PingResult:
 	try:
 		process_result = _execute_ping_command(address, icmp_count, timeout)
 		return _parse_output(process_result)
 	except subprocess.SubprocessError:
-		return PingResult(address, None, error=PingStatus.EXECUTION_ERROR)
+		return PingResult(address, None, status=PingStatus.EXECUTION_ERROR)
+	except ValueError:
+		return PingResult(address, None, status=PingStatus.COMMAND_ERROR)
 
 
 def _execute_ping_command(
-	address: str, icmp_count: int = 2, timeout: int = 1
+	address: str, icmp_count: int, timeout: int
 ) -> subprocess.CompletedProcess:
-	if icmp_count < 1:
+	if icmp_count < 1 or timeout < 1:
 		raise ValueError("ping: count of packets to transmit must be greater than 1")
 	if timeout < 1:
 		raise ValueError("ping: timeout must be greater than 1")
-	return subprocess.run(
+	return subprocess.run(  # nosec B404
 		["ping", "-c", str(icmp_count), "-W", str(timeout), address],
 		capture_output=True,
 	)
 
 
 def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
-	# print(process_result)
 	stdout = process_result.stdout.decode()
 	stderr = process_result.stderr.decode()
 	output = stdout if stdout else stderr
 
 	address = process_result.args[-1]
 	if "Unknown host" in output:
-		return PingResult(address, None, error=PingStatus.UNKNOWN_HOST)
+		return PingResult(address, None, status=PingStatus.UNKNOWN_HOST)
 
 	output_lines = output[:-1].split("\n")
 
 	ip_address_match = re.search(r"((\d{1,3}\.){3}\d{1,3})", output_lines[0])
 	if ip_address_match is None:
-		return PingResult(address, None, error=PingStatus.PARSE_ERROR)
+		return PingResult(address, None, status=PingStatus.PARSE_ERROR)
 
 	ip_address = IPAddress(ip_address_match[1])
 
@@ -89,7 +99,7 @@ def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
 			packets_sent=packets_sent,
 			packets_received=packets_received,
 			packet_loss=packet_loss,
-			error=PingStatus.NETWORK_ERROR,
+			status=PingStatus.NETWORK_ERROR,
 		)
 
 	if packets_received == 0:
@@ -99,7 +109,7 @@ def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
 			packets_sent=packets_sent,
 			packets_received=packets_received,
 			packet_loss=packet_loss,
-			error=PingStatus.TIMEOUT,
+			status=PingStatus.TIMEOUT,
 		)
 
 	rtt_summary = output_lines[-1]
@@ -120,5 +130,5 @@ def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
 		rtt_avg=rtt_avg,
 		rtt_max=rtt_max,
 		rtt_std_dev=rtt_std_dev,
-		error=error,
+		status=error,
 	)

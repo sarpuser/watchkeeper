@@ -14,40 +14,46 @@ TEST_IP_ADDRESS = "TEST.IP.ADDRESS"
 
 
 @pytest.fixture
-def mock_status_checker() -> StatusChecker:
-	class MockChecker(StatusChecker):
-		def __init__(self, is_up: bool, timestamp: datetime):
-			self.is_up = is_up
-			self.timestamp = timestamp
+def create_mock_checker_class():
+	"""Returns a function that creates mock status checker classes"""
 
-		def check_status(self, address) -> StatusCheckResult:
-			return StatusCheckResult(is_up=self.is_up, timestamp=self.timestamp)
+	def _create_class(is_up: bool, timestamp: datetime, error=False) -> type:
+		class MockCheckerClass(StatusChecker):
+			@classmethod
+			def check_status(cls, address, **kwargs) -> StatusCheckResult:
+				return StatusCheckResult(is_up=is_up, timestamp=timestamp, error=error)
 
-	return MockChecker
+		return MockCheckerClass
+
+	return _create_class
 
 
 @pytest.mark.parametrize(
 	"is_up_expected",
 	[True, False],
 )
-def test_device_up_status(mock_status_checker, is_up_expected):
+def test_device_up_status(create_mock_checker_class, is_up_expected):
+	mock_status_checker = create_mock_checker_class(is_up_expected, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=is_up_expected, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,  # not testing
 	)
 	assert device.is_up == is_up_expected
 
 
-def test_device_update_last_checked(mock_status_checker):
+def test_device_update_last_checked(create_mock_checker_class):
+	mock_status_checker = create_mock_checker_class(True, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=True, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,
-		FIVE_MIN_AGO_TIME,  # last checked
 	)
+	device._Device__last_checked = FIVE_MIN_AGO_TIME
 	_ = device.is_up  # The is_up property should update last checked
-	assert device._Device__last_checked == NOW_TIME
+	assert device.last_checked == NOW_TIME
 
 
 @pytest.mark.parametrize(
@@ -60,18 +66,19 @@ def test_device_update_last_checked(mock_status_checker):
 	],
 )
 def test_device_update_last_updated(
-	mock_status_checker, is_up, last_status, expected_last_updated
+	create_mock_checker_class, is_up, last_status, expected_last_updated
 ):
+	mock_status_checker = create_mock_checker_class(is_up, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=is_up, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,  # not testing
-		NOW_TIME,  # last checked - not testing
-		FIVE_MIN_AGO_TIME,  # last updated
-		last_status,
 	)
+	device._Device__last_updated = FIVE_MIN_AGO_TIME
+	device._Device__last_status = last_status
 	_ = device.is_up  # is_up updates last updated if status changed
-	assert device._Device__last_updated == expected_last_updated
+	assert device.last_update == expected_last_updated
 
 
 @pytest.mark.parametrize(
@@ -84,35 +91,59 @@ def test_device_update_last_updated(
 	],
 )
 def test_device_update_last_status(
-	mock_status_checker, last_status, is_up, expected_last_status
+	create_mock_checker_class, last_status, is_up, expected_last_status
 ):
+	mock_status_checker = create_mock_checker_class(is_up, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=is_up, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,  # not testing
-		NOW_TIME,  # last checked - not testing
-		NOW_TIME,  # last updated - not testing
-		last_status,
 	)
+	device._Device__last_status = last_status
 	_ = device.is_up  # is_up updates last updated if status changed
 	assert device._Device__last_status == expected_last_status
 
 
-def test_device_last_checked_after_init(mock_status_checker):
+def test_device_last_checked_after_init(create_mock_checker_class):
+	mock_status_checker = create_mock_checker_class(False, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=False, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,
 	)
-	assert device._Device__last_checked is not None
-	assert device._Device__last_checked == NOW_TIME
+	assert device.last_checked is not None
+	assert device.last_checked == NOW_TIME
 
 
-def test_device_last_updated_after_init(mock_status_checker):
+def test_device_last_updated_after_init(create_mock_checker_class):
+	mock_status_checker = create_mock_checker_class(False, NOW_TIME)
+
 	device = Device(
 		"test_device",
-		mock_status_checker(is_up=False, timestamp=NOW_TIME),
+		mock_status_checker,
 		TEST_IP_ADDRESS,
 	)
-	assert device._Device__last_updated is not None
-	assert device._Device__last_updated == NOW_TIME
+	assert device.last_update is not None
+	assert device.last_update == NOW_TIME
+
+
+@pytest.mark.parametrize(
+	"error, is_up, last_status, expected_is_up",
+	[
+		(True, None, True, True),
+		(True, None, False, False),
+		(False, True, False, True),
+		(False, False, True, False),
+	],
+)
+def test_device_check_error_returns_last_status(
+	create_mock_checker_class, error, is_up, last_status, expected_is_up
+):
+	mock_status_checker = create_mock_checker_class(is_up, NOW_TIME, error)
+
+	device = Device("test_device", mock_status_checker, TEST_IP_ADDRESS)
+	device._Device__last_status = last_status
+
+	assert device.is_up == expected_is_up

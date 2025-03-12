@@ -6,6 +6,7 @@ TEST_NET_IPS = ["192.0.2.0", "198.51.100.0", "203.0.113.0"]
 PARTIAL_LOSS_HOST = "partial.loss.test"
 DUMMY_IP = "192.168.0.1"  # Doesn't really matter
 MALFORMED_OUTPUT_HOST = "malformed.output.test"
+EXECUTION_ERROR_HOST = "execution.error.test"
 
 # Default RTT values
 RTT_MIN = 0.020
