@@ -116,7 +116,7 @@ jobs:
           if [[ "${{ needs.check-changes.outputs.source-files-modified }}" != "true" ]]; then
             echo "::notice::No source files changed - skipping unit tests"
             echo "skip=true" >> $GITHUB_OUTPUT
-
+          fi
       - name: Set up Python
         if: steps.should-skip.outputs.skip != 'true'
         id: setup-python

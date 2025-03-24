@@ -5,7 +5,7 @@ from watchkeeper.monitoring.status_checkers.ping_checker import (
 	ping,
 )
 
-from .values import LOCALHOST_HOST, LOCALHOST_IP, TEST_NET_IPS, UNKNOWN_HOST
+from .values import DUMMY_IP, LOCALHOST_HOST, LOCALHOST_IP, TEST_NET_IPS, UNKNOWN_HOST
 
 
 @pytest.mark.parametrize("localhost_address", [LOCALHOST_HOST, LOCALHOST_IP])
@@ -68,7 +68,7 @@ def test_ping_command_unknown_host():
 
 # Invalid parameter tests
 @pytest.mark.parametrize("icmp_count,", [-1, 0])
-def test_ping_parser_invalid_values(icmp_count):
+def test_ping_command_invalid_values(icmp_count):
 	"""Test invalid ICMP count parameter"""
 	result = ping(LOCALHOST_HOST, icmp_count=icmp_count)
 
@@ -77,9 +77,15 @@ def test_ping_parser_invalid_values(icmp_count):
 
 
 @pytest.mark.parametrize("timeout", [-1, 0])
-def test_ping_parser_invalid_timeout(timeout):
+def test_ping_command_invalid_timeout(timeout):
 	"""Test invalid timeout parameter"""
 	result = ping(LOCALHOST_HOST, timeout=timeout)
 
 	assert result.status == PingStatus.COMMAND_ERROR
 	assert result.ip_address is None, f"{result.ip_address=} == None"
+
+
+def test_ping_command_integer_arguments():
+	with pytest.raises(TypeError):
+		_ = ping(DUMMY_IP, icmp_count="invalid")
+		_ = ping(DUMMY_IP, timeout="invalid")

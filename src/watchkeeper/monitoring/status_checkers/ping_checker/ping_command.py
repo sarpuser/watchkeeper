@@ -4,8 +4,6 @@ from dataclasses import KW_ONLY, dataclass
 from datetime import datetime
 from enum import Enum
 
-from ....utils.ip_address import IPAddress
-
 DEFAULT_ICMP_COUNT = 2
 DEFAULT_TIMEOUT = 1
 
@@ -23,7 +21,7 @@ class PingStatus(Enum):
 @dataclass
 class PingResult:
 	hostname: str
-	ip_address: IPAddress | None
+	ip_address: str | None
 	_: KW_ONLY
 	packets_sent: int = 0
 	packets_received: int = 0
@@ -57,11 +55,13 @@ def ping(
 def _execute_ping_command(
 	address: str, icmp_count: int, timeout: int
 ) -> subprocess.CompletedProcess:
+	if not isinstance(icmp_count, int) or not isinstance(timeout, int):
+		raise TypeError("ping: imcp count and timeout must be an integer")
 	if icmp_count < 1 or timeout < 1:
 		raise ValueError("ping: count of packets to transmit must be greater than 1")
 	if timeout < 1:
 		raise ValueError("ping: timeout must be greater than 1")
-	return subprocess.run(  # nosec B404
+	return subprocess.run(  # nosec: B607, B603
 		["ping", "-c", str(icmp_count), "-W", str(timeout), address],
 		capture_output=True,
 	)
@@ -82,7 +82,7 @@ def _parse_output(process_result: subprocess.CompletedProcess) -> PingResult:
 	if ip_address_match is None:
 		return PingResult(address, None, status=PingStatus.PARSE_ERROR)
 
-	ip_address = IPAddress(ip_address_match[1])
+	ip_address = ip_address_match[1]
 
 	packet_summary = (
 		output_lines[-2] if "min/avg/max" in output_lines[-1] else output_lines[-1]
