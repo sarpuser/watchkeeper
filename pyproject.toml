@@ -54,11 +54,16 @@ select = [
     "PYI", # stub files
     "PGH", # pygrep-hooks including type annotation issues
     "N",   # Naming conventions
+    "T20", # Print statements
 ]
 
 # Directory-specific overrides
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["C901", "E501"]  # Ignore complexity and line length checks in test files
+"tests/**/*.py" = [
+    "C901",
+    "E501",
+    "T20",
+] # Ignore complexity and line length checks in test files
 
 # Mccabe complexity settings
 [tool.ruff.lint.mccabe]
