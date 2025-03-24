@@ -3,7 +3,7 @@ name = "watchkeeper"
 version = "0.0.0"
 description = "A lightweight service monitoring tool that generates static status pages"
 readme = "README.md"
-authors = [{ name = "Sarp User", email = "sarpuser@gmail.com" }]
+authors = [{ name = "Sarp User" }]
 license = { text = "MIT" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 requires-python = ">=3.11"
